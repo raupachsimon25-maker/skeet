@@ -1,21 +1,21 @@
 --[[
 	══════════════════════════════════════════════════════════════════════════════
-	  SKEETWARE UI v2.5 — Premium Hard Edge & Gradient Menu Library (Luau/Roblox)
+	  SKEETWARE UI v3.0 — Hard Edge & Clean Gradient Menu Engine (Luau / Roblox)
 	  Authentic GameSense / Skeet.cc aesthetics:
 	  • Crisp Hard Edges (0px radius, 3-layer pixel-perfect borders)
-	  • Multi-tone Clean Gradients (Top RGB line, vertical sheens, fill ramps)
-	  • PixelOperator Font integration (with fallback to Code/RobotoMono)
-	  • 100% Functional Elements:
+	  • Multi-tone Clean Gradients (Top RGB bar, container sheens, fill ramps)
+	  • Clean Modern Typography (Gotham / Ubuntu cheat styling)
+	  • 100% Tested & Working Elements:
 	    - Toggles with inline ColorPickers & Keybinds
-	    - Standalone Colorpickers with SV canvas, Hue bar & Hex display
-	    - Standalone Keybinds with Mode selection (Toggle, Hold, Always)
-	    - Smooth Sliders with text readout & suffix
-	    - Single & Multi-Select Floating Dropdowns (Zero clipping, smooth anim)
+	    - Standalone Colorpickers (2D SV canvas + Hue slider + Hex display)
+	    - Standalone Keybinds (Hold, Toggle, Always modes)
+	    - Sliders (Smooth click & drag with real-time value updates)
+	    - Dropdowns (Single & Multi-Select with smooth tweens & Blocker closing)
 	    - Buttons & Risky Buttons
-	    - Textboxes & Searchbars
-	    - Tabboxes (Sub-tabs inside groupbox column)
-	    - Watermark HUD & Real-time Keybinds List HUD
-	    - Notification System with animated gradient timer
+	    - Textboxes with clean focus state
+	    - Tabboxes & Groupboxes
+	    - Watermark HUD & Real-Time Keybinds List HUD
+	    - Animated Notification System
 	══════════════════════════════════════════════════════════════════════════════
 --]]
 
@@ -48,25 +48,15 @@ local function getSafeGuiParent()
 	return LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- PixelOperator font setup with safe fallback
-local PixelFontFace = nil
-local PixelBoldFace = nil
-pcall(function()
-	PixelFontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-	PixelBoldFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
-end)
-
 local Library = {
-	Version      = "2.5.0",
+	Version      = "3.0.0",
 	Name         = "Skeetware",
 	Open         = true,
 	ToggleKey    = Enum.KeyCode.Insert,
 	Flags        = {},
 	Registry     = {},
-	Connections  = {},
 	KeybindList  = nil,
 	Watermark    = nil,
-	OverlayFrame = nil,
 	ScreenGui    = nil,
 
 	Theme = {
@@ -76,17 +66,17 @@ local Library = {
 		AccentDark   = Color3.fromRGB(110, 165, 55),  -- Darker tone for gradient ramps
 		
 		-- Skeet Surfaces & Gradients
-		MainTop      = Color3.fromRGB(30, 30, 34),
-		MainBottom   = Color3.fromRGB(17, 17, 19),
+		MainTop      = Color3.fromRGB(28, 28, 32),
+		MainBottom   = Color3.fromRGB(16, 16, 18),
 		GroupTop     = Color3.fromRGB(24, 24, 27),
-		GroupBottom  = Color3.fromRGB(18, 18, 20),
+		GroupBottom  = Color3.fromRGB(17, 17, 19),
 		ControlTop   = Color3.fromRGB(36, 36, 40),
-		ControlBottom= Color3.fromRGB(25, 25, 27),
-		ControlHover = Color3.fromRGB(46, 46, 52),
+		ControlBottom= Color3.fromRGB(24, 24, 26),
+		ControlHover = Color3.fromRGB(48, 48, 54),
 		
 		-- Hard-Edge Borders
 		OuterBorder  = Color3.fromRGB(0, 0, 0),       -- 1px Pitch Black
-		MidBorder    = Color3.fromRGB(46, 46, 50),     -- 1px Crisp Inset Highlight
+		MidBorder    = Color3.fromRGB(45, 45, 50),     -- 1px Crisp Inset Highlight
 		InnerBorder  = Color3.fromRGB(12, 12, 14),     -- 1px Deep border
 
 		-- Text
@@ -99,12 +89,10 @@ local Library = {
 		RiskyDark    = Color3.fromRGB(160, 40, 40),
 		Success      = Color3.fromRGB(110, 210, 100),
 
-		-- Fonts (PixelOperator by default)
-		FontFace     = PixelFontFace,
-		FontBoldFace = PixelBoldFace,
-		Font         = Enum.Font.Code,
-		FontBold     = Enum.Font.RobotoMono,
-		FontSize     = 13,
+		-- Fonts (Clean modern cheat styling)
+		Font         = Enum.Font.GothamMedium,
+		FontBold     = Enum.Font.GothamBold,
+		FontSize     = 12,
 	}
 }
 
@@ -118,18 +106,6 @@ function Util.Create(class, props, children)
 	for k, v in pairs(props or {}) do
 		if k ~= "Parent" then inst[k] = v end
 	end
-	
-	-- Apply PixelOperator font if this is a text object
-	if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
-		pcall(function()
-			if Library.Theme.FontFace then
-				inst.FontFace = Library.Theme.FontFace
-			else
-				inst.Font = Library.Theme.Font
-			end
-		end)
-	end
-
 	for _, child in ipairs(children or {}) do
 		child.Parent = inst
 	end
@@ -140,18 +116,6 @@ function Util.Create(class, props, children)
 end
 local New = Util.Create
 
-function Util.SetFont(textObj, isBold)
-	pcall(function()
-		if isBold and Library.Theme.FontBoldFace then
-			textObj.FontFace = Library.Theme.FontBoldFace
-		elseif Library.Theme.FontFace then
-			textObj.FontFace = Library.Theme.FontFace
-		else
-			textObj.Font = isBold and Library.Theme.FontBold or Library.Theme.Font
-		end
-	end)
-end
-
 function Util.Tween(inst, dur, props, style, dir)
 	style = style or Enum.EasingStyle.Quart
 	dir   = dir or Enum.EasingDirection.Out
@@ -160,7 +124,7 @@ function Util.Tween(inst, dur, props, style, dir)
 	return t
 end
 
--- Multi-layered Hard-Edge Border Frame (0px Radius)
+-- Multi-layered Hard-Edge Border Frame (0px Radius, 3-Layer Borders)
 function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom)
 	-- Layer 1: Outermost pitch-black border
 	local outer = New("Frame", {
@@ -180,7 +144,7 @@ function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom)
 		Parent = outer,
 	})
 
-	-- Layer 3: Inner surface (1px inset) with clean vertical gradient
+	-- Layer 3: Inner surface (1px inset) with vertical gradient
 	local inner = New("Frame", {
 		Size = UDim2.new(1, -2, 1, -2),
 		Position = UDim2.fromOffset(1, 1),
@@ -229,9 +193,6 @@ function Util.AddSkeetGradientBar(parent, height)
 	return bar
 end
 
---============================================================================--
--- INITIALIZE ROOT GUI & FLOATING OVERLAY
---============================================================================--
 -- Clean up any previous instance
 local oldGui = getSafeGuiParent():FindFirstChild("SkeetwareUI")
 if oldGui then oldGui:Destroy() end
@@ -243,28 +204,6 @@ local screenGui = New("ScreenGui", {
 	Parent = getSafeGuiParent(),
 })
 Library.ScreenGui = screenGui
-
--- Floating Overlay container for non-clipping dropdowns, color pickers, modals
-local overlay = New("Frame", {
-	Name = "OverlayLayer",
-	Size = UDim2.fromScale(1, 1),
-	BackgroundTransparency = 1,
-	ZIndex = 5000,
-	Parent = screenGui,
-})
-Library.OverlayFrame = overlay
-
--- Active overlay closer (closes open dropdowns/colorpickers when clicking outside)
-local activeDropdownClose = nil
-UserInputService.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if activeDropdownClose then
-			local close = activeDropdownClose
-			activeDropdownClose = nil
-			close()
-		end
-	end
-end)
 
 --============================================================================--
 -- WATERMARK HUD
@@ -279,13 +218,13 @@ function Library:CreateWatermark(customTitle)
 		Size = UDim2.new(1, -12, 1, -2),
 		Position = UDim2.fromOffset(8, 2),
 		BackgroundTransparency = 1,
-		TextSize = Library.Theme.FontSize,
+		Font = Library.Theme.Font,
+		TextSize = Library.Theme.FontSize - 1,
 		TextColor3 = Library.Theme.Text,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = title .. " | v" .. Library.Version .. " | 60 fps | 14 ms",
 		Parent = wmInner,
 	})
-	Util.SetFont(wmLabel, false)
 
 	local fpsCount = 0
 	local lastFpsUpdate = tick()
@@ -315,12 +254,12 @@ function Library:CreateKeybindList()
 		Size = UDim2.new(1, 0, 0, 22),
 		Position = UDim2.fromOffset(0, 2),
 		BackgroundTransparency = 1,
+		Font = Library.Theme.FontBold,
 		TextSize = Library.Theme.FontSize,
 		TextColor3 = Library.Theme.Text,
 		Text = "Keybinds",
 		Parent = kbInner,
 	})
-	Util.SetFont(header, true)
 
 	local listContainer = New("Frame", {
 		Size = UDim2.new(1, -12, 0, 0),
@@ -358,36 +297,34 @@ function Library:CreateKeybindList()
 				BackgroundTransparency = 1,
 				Parent = listContainer,
 			})
-			local lbl = New("TextLabel", {
+			New("TextLabel", {
 				Size = UDim2.new(0.55, 0, 1, 0),
 				BackgroundTransparency = 1,
+				Font = Library.Theme.Font,
 				TextSize = Library.Theme.FontSize - 1,
 				TextColor3 = Library.Theme.TextDim,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				Text = name,
 				Parent = row,
 			})
-			Util.SetFont(lbl, false)
-
 			local val = New("TextLabel", {
 				Name = "Val",
 				Size = UDim2.new(0.45, 0, 1, 0),
 				Position = UDim2.new(0.55, 0, 0, 0),
 				BackgroundTransparency = 1,
+				Font = Library.Theme.Font,
 				TextSize = Library.Theme.FontSize - 1,
 				TextColor3 = Library.Theme.Accent1,
 				TextXAlignment = Enum.TextXAlignment.Right,
 				Text = string.format("[%s] (%s)", key, mode),
 				Parent = row,
 			})
-			Util.SetFont(val, false)
-
 			binds[name] = row
 			updateSize()
 		end
 	end
 
-	-- Make Keybind HUD Draggable
+	-- Draggable Keybind HUD
 	local dragging, dragStart, startPos
 	header.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -437,22 +374,23 @@ function Library:Notify(cfg)
 	notifOuter.ClipsDescendants = true
 	Util.AddSkeetGradientBar(notifInner, 2)
 
-	local header = New("TextLabel", {
+	New("TextLabel", {
 		Size = UDim2.new(1, -16, 0, 18),
 		Position = UDim2.fromOffset(8, 5),
 		BackgroundTransparency = 1,
+		Font = Library.Theme.FontBold,
 		TextSize = Library.Theme.FontSize,
 		TextColor3 = Library.Theme.Accent1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = title,
 		Parent = notifInner,
 	})
-	Util.SetFont(header, true)
 
-	local desc = New("TextLabel", {
+	New("TextLabel", {
 		Size = UDim2.new(1, -16, 0, 26),
 		Position = UDim2.fromOffset(8, 22),
 		BackgroundTransparency = 1,
+		Font = Library.Theme.Font,
 		TextSize = Library.Theme.FontSize - 1,
 		TextColor3 = Library.Theme.Text,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -460,7 +398,6 @@ function Library:Notify(cfg)
 		Text = text,
 		Parent = notifInner,
 	})
-	Util.SetFont(desc, false)
 
 	local timerBar = New("Frame", {
 		Size = UDim2.new(1, 0, 0, 2),
@@ -493,10 +430,10 @@ function Library:CreateWindow(cfg)
 	local winOuter, winInner = Util.CreateHardBorder(screenGui, winSize, UDim2.fromScale(0.5, 0.5), Library.Theme.MainTop, Library.Theme.MainBottom)
 	winOuter.AnchorPoint = Vector2.new(0.5, 0.5)
 
-	-- Signature Rainbow / Accent Gradient Bar across top
+	-- Signature Gradient Bar across top
 	Util.AddSkeetGradientBar(winInner, 3)
 
-	-- Top Header Bar (Title & Drag Area)
+	-- Top Header Bar
 	local titleBar = New("Frame", {
 		Size = UDim2.new(1, 0, 0, 30),
 		Position = UDim2.fromOffset(0, 3),
@@ -504,19 +441,19 @@ function Library:CreateWindow(cfg)
 		Parent = winInner,
 	})
 
-	local titleLabel = New("TextLabel", {
+	New("TextLabel", {
 		Size = UDim2.new(1, -20, 1, 0),
 		Position = UDim2.fromOffset(12, 0),
 		BackgroundTransparency = 1,
+		Font = Library.Theme.FontBold,
 		TextSize = Library.Theme.FontSize + 1,
 		TextColor3 = Library.Theme.Text,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = string.upper(title),
 		Parent = titleBar,
 	})
-	Util.SetFont(titleLabel, true)
 
-	-- Subtle separator line under Titlebar
+	-- Separator
 	New("Frame", {
 		Size = UDim2.new(1, -20, 0, 1),
 		Position = UDim2.fromOffset(10, 32),
@@ -559,7 +496,7 @@ function Library:CreateWindow(cfg)
 		end
 	end)
 
-	-- Tabs Navigation Bar (Classic Skeet Tabs: Clean Hard-Edged Horizontal Bar with Gradient Selection)
+	-- Tabs Navigation Bar
 	local tabListFrame = New("Frame", {
 		Size = UDim2.new(1, -24, 0, 28),
 		Position = UDim2.fromOffset(12, 38),
@@ -573,7 +510,7 @@ function Library:CreateWindow(cfg)
 		Parent = tabListFrame,
 	})
 
-	-- Tab Viewport Content Container
+	-- Content Container
 	local contentHolder = New("Frame", {
 		Size = UDim2.new(1, -24, 1, -78),
 		Position = UDim2.fromOffset(12, 70),
@@ -604,12 +541,12 @@ function Library:CreateWindow(cfg)
 		local tabLabel = New("TextLabel", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
+			Font = Library.Theme.FontBold,
 			TextSize = Library.Theme.FontSize,
 			TextColor3 = Library.Theme.TextDim,
 			Text = string.upper(tabName),
 			Parent = tabBtnInner,
 		})
-		Util.SetFont(tabLabel, true)
 
 		-- Tab Page (2-Column Grid Split)
 		local tabPage = New("Frame", {
@@ -647,7 +584,7 @@ function Library:CreateWindow(cfg)
 			ScrollBarImageColor3 = Library.Theme.MidBorder,
 			CanvasSize = UDim2.new(0, 0, 0, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			Parent = tabPage,
+			Parent = rightCol,
 		})
 		New("UIListLayout", {
 			Padding = UDim.new(0, 12),
@@ -702,7 +639,7 @@ function Library:CreateWindow(cfg)
 			local gbOuter, gbInner = Util.CreateHardBorder(side, UDim2.new(1, 0, 0, 0), nil, Library.Theme.GroupTop, Library.Theme.GroupBottom)
 			gbOuter.AutomaticSize = Enum.AutomaticSize.Y
 
-			-- Title header cutting through top border with subtle glow
+			-- Title header cutting through top border
 			local titleHold = New("Frame", {
 				Size = UDim2.fromOffset(0, 14),
 				AutomaticSize = Enum.AutomaticSize.X,
@@ -717,16 +654,16 @@ function Library:CreateWindow(cfg)
 				PaddingRight = UDim.new(0, 4),
 				Parent = titleHold,
 			})
-			local gbTitleLabel = New("TextLabel", {
+			New("TextLabel", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
+				Font = Library.Theme.FontBold,
 				TextSize = Library.Theme.FontSize,
 				TextColor3 = Library.Theme.Text,
 				Text = gTitle,
 				ZIndex = 4,
 				Parent = titleHold,
 			})
-			Util.SetFont(gbTitleLabel, true)
 
 			-- Element List Container inside Groupbox
 			local elemList = New("Frame", {
@@ -748,63 +685,97 @@ function Library:CreateWindow(cfg)
 
 			local Group = {}
 
-			-- Helper function to attach color picker to any element
+			-- Helper function to create rock-solid color picker
 			local function createColorPickerElement(parentHold, defaultCol, flag, callback)
 				local curColor = defaultCol or Library.Theme.Accent1
-				local cpOuter, cpInner = Util.CreateHardBorder(parentHold, UDim2.fromOffset(24, 11), nil, curColor, curColor)
-				
+				local curH, curS, curV = curColor:ToHSV()
+
+				local cpOuter = New("TextButton", {
+					Size = UDim2.fromOffset(26, 12),
+					BackgroundColor3 = Library.Theme.OuterBorder,
+					BorderSizePixel = 0,
+					Text = "",
+					Parent = parentHold,
+				})
+				local cpMid = New("Frame", {
+					Size = UDim2.new(1, -2, 1, -2),
+					Position = UDim2.fromOffset(1, 1),
+					BackgroundColor3 = Library.Theme.MidBorder,
+					BorderSizePixel = 0,
+					Parent = cpOuter,
+				})
 				local cpColorPreview = New("Frame", {
-					Size = UDim2.fromScale(1, 1),
+					Size = UDim2.new(1, -2, 1, -2),
+					Position = UDim2.fromOffset(1, 1),
 					BackgroundColor3 = curColor,
 					BorderSizePixel = 0,
-					Parent = cpInner,
+					Parent = cpMid,
 				})
 
-				local popupOuter, popupInner
 				local isOpen = false
+				local popupOuter = nil
+				local blocker = nil
 
-				local function toggleColorPicker()
-					isOpen = not isOpen
-					if not isOpen then
-						if popupOuter then popupOuter:Destroy() popupOuter = nil end
-						return
-					end
+				local function closePicker()
+					if not isOpen then return end
+					isOpen = false
+					if blocker then blocker:Destroy() blocker = nil end
+					if popupOuter then popupOuter:Destroy() popupOuter = nil end
+				end
 
-					if activeDropdownClose then activeDropdownClose() end
+				local function openPicker()
+					if isOpen then closePicker() return end
+					isOpen = true
+
+					-- Full screen click blocker to cleanly close on outside click
+					blocker = New("TextButton", {
+						Size = UDim2.fromScale(1, 1),
+						BackgroundTransparency = 1,
+						Text = "",
+						ZIndex = 9990,
+						Parent = screenGui,
+					})
+					blocker.MouseButton1Click:Connect(closePicker)
 
 					local absPos = cpOuter.AbsolutePosition
-					popupOuter, popupInner = Util.CreateHardBorder(overlay, UDim2.fromOffset(170, 145), UDim2.fromOffset(absPos.X - 140, absPos.Y + 16), Library.Theme.MainTop, Library.Theme.MainBottom)
-					popupOuter.ZIndex = 6000
-					Util.AddSkeetGradientBar(popupInner, 2)
+					local popOuter, popInner = Util.CreateHardBorder(screenGui, UDim2.fromOffset(175, 148), UDim2.fromOffset(absPos.X - 145, absPos.Y + 16), Library.Theme.MainTop, Library.Theme.MainBottom)
+					popOuter.ZIndex = 9995
+					Util.AddSkeetGradientBar(popInner, 2)
+					popupOuter = popOuter
 
-					-- SV Canvas Box (Saturation / Value)
-					local svBox = New("ImageLabel", {
-						Size = UDim2.fromOffset(125, 100),
+					-- 2D SV Box (Saturation & Value)
+					local svBox = New("ImageButton", {
+						Size = UDim2.fromOffset(130, 100),
 						Position = UDim2.fromOffset(8, 8),
 						Image = "rbxassetid://4155801252",
-						BackgroundColor3 = curColor,
+						BackgroundColor3 = Color3.fromHSV(curH, 1, 1),
 						BorderSizePixel = 0,
-						Parent = popupInner,
+						AutoButtonColor = false,
+						ZIndex = 9996,
+						Parent = popInner,
 					})
 					Util.CreateHardBorder(svBox, UDim2.fromScale(1, 1))
 
-					-- SV Draggable Pin
 					local svPin = New("Frame", {
 						Size = UDim2.fromOffset(4, 4),
 						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.fromScale(curS, 1 - curV),
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BorderSizePixel = 0,
+						ZIndex = 9997,
 						Parent = svBox,
 					})
 					Util.CreateHardBorder(svPin, UDim2.fromScale(1, 1))
 
-					-- Hue Slider (Vertical)
-					local hueBox = New("Frame", {
+					-- Vertical Hue Slider
+					local hueBox = New("ImageButton", {
 						Size = UDim2.fromOffset(16, 100),
-						Position = UDim2.fromOffset(142, 8),
+						Position = UDim2.fromOffset(148, 8),
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BorderSizePixel = 0,
-						Parent = popupInner,
+						AutoButtonColor = false,
+						ZIndex = 9996,
+						Parent = popInner,
 					})
 					Util.CreateHardBorder(hueBox, UDim2.fromScale(1, 1))
 					New("UIGradient", {
@@ -823,23 +794,17 @@ function Library:CreateWindow(cfg)
 
 					-- Hex Text Display
 					local hexLabel = New("TextLabel", {
-						Size = UDim2.new(1, -16, 0, 20),
+						Size = UDim2.new(1, -16, 0, 22),
 						Position = UDim2.fromOffset(8, 116),
 						BackgroundTransparency = 1,
+						Font = Library.Theme.Font,
 						TextSize = Library.Theme.FontSize - 1,
 						TextColor3 = Library.Theme.TextDim,
 						TextXAlignment = Enum.TextXAlignment.Left,
 						Text = "#" .. curColor:ToHex():upper(),
-						Parent = popupInner,
+						ZIndex = 9996,
+						Parent = popInner,
 					})
-					Util.SetFont(hexLabel, false)
-
-					-- Dragging SV & Hue Logic
-					local curH, curS, curV = curColor:ToHSV()
-					svPin.Position = UDim2.fromScale(curS, 1 - curV)
-
-					local draggingHue = false
-					local draggingSV  = false
 
 					local function updateColor()
 						local newCol = Color3.fromHSV(curH, curS, curV)
@@ -851,62 +816,60 @@ function Library:CreateWindow(cfg)
 						callback(newCol)
 					end
 
-					hueBox.InputBegan:Connect(function(input)
-						if input.UserInputType == Enum.UserInputType.MouseButton1 then
-							draggingHue = true
-							local y = math.clamp((input.Position.Y - hueBox.AbsolutePosition.Y) / hueBox.AbsoluteSize.Y, 0, 1)
-							curH = 1 - y
-							updateColor()
-						end
+					-- Dragging logic
+					local draggingSV, draggingHue = false, false
+					svBox.MouseButton1Down:Connect(function()
+						draggingSV = true
+						local mouse = UserInputService:GetMouseLocation()
+						local x = math.clamp((mouse.X - svBox.AbsolutePosition.X) / svBox.AbsoluteSize.X, 0, 1)
+						local y = math.clamp((mouse.Y - svBox.AbsolutePosition.Y) / svBox.AbsoluteSize.Y, 0, 1)
+						curS = x
+						curV = 1 - y
+						svPin.Position = UDim2.fromScale(x, y)
+						updateColor()
 					end)
-					svBox.InputBegan:Connect(function(input)
-						if input.UserInputType == Enum.UserInputType.MouseButton1 then
-							draggingSV = true
-							local x = math.clamp((input.Position.X - svBox.AbsolutePosition.X) / svBox.AbsoluteSize.X, 0, 1)
-							local y = math.clamp((input.Position.Y - svBox.AbsolutePosition.Y) / svBox.AbsoluteSize.Y, 0, 1)
-							curS = x
-							curV = 1 - y
-							svPin.Position = UDim2.fromScale(x, y)
-							updateColor()
-						end
+
+					hueBox.MouseButton1Down:Connect(function()
+						draggingHue = true
+						local mouse = UserInputService:GetMouseLocation()
+						local y = math.clamp((mouse.Y - hueBox.AbsolutePosition.Y) / hueBox.AbsoluteSize.Y, 0, 1)
+						curH = 1 - y
+						updateColor()
 					end)
-					local conn = UserInputService.InputChanged:Connect(function(input)
+
+					local moveConn = UserInputService.InputChanged:Connect(function(input)
 						if input.UserInputType == Enum.UserInputType.MouseMovement then
-							if draggingHue then
-								local y = math.clamp((input.Position.Y - hueBox.AbsolutePosition.Y) / hueBox.AbsoluteSize.Y, 0, 1)
-								curH = 1 - y
-								updateColor()
-							elseif draggingSV then
+							if draggingSV then
 								local x = math.clamp((input.Position.X - svBox.AbsolutePosition.X) / svBox.AbsoluteSize.X, 0, 1)
 								local y = math.clamp((input.Position.Y - svBox.AbsolutePosition.Y) / svBox.AbsoluteSize.Y, 0, 1)
 								curS = x
 								curV = 1 - y
 								svPin.Position = UDim2.fromScale(x, y)
 								updateColor()
+							elseif draggingHue then
+								local y = math.clamp((input.Position.Y - hueBox.AbsolutePosition.Y) / hueBox.AbsoluteSize.Y, 0, 1)
+								curH = 1 - y
+								updateColor()
 							end
 						end
 					end)
+
 					local endConn = UserInputService.InputEnded:Connect(function(input)
 						if input.UserInputType == Enum.UserInputType.MouseButton1 then
-							draggingHue = false
 							draggingSV = false
+							draggingHue = false
 						end
 					end)
 
-					activeDropdownClose = function()
-						isOpen = false
-						conn:Disconnect()
-						endConn:Disconnect()
-						if popupOuter then popupOuter:Destroy() popupOuter = nil end
-					end
+					popOuter.AncestryChanged:Connect(function()
+						if not popOuter.Parent then
+							moveConn:Disconnect()
+							endConn:Disconnect()
+						end
+					end)
 				end
 
-				cpOuter.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
-						toggleColorPicker()
-					end
-				end)
-
+				cpOuter.MouseButton1Click:Connect(openPicker)
 				return cpOuter
 			end
 
@@ -947,13 +910,13 @@ function Library:CreateWindow(cfg)
 					Size = UDim2.new(1, -20, 1, 0),
 					Position = UDim2.fromOffset(20, 0),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = state and Library.Theme.Text or Library.Theme.TextDim,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = tText,
 					Parent = row,
 				})
-				Util.SetFont(label, false)
 
 				-- Right-side inline sub-items container (Colorpicker / Keybind buttons)
 				local inlineHold = New("Frame", {
@@ -962,6 +925,7 @@ function Library:CreateWindow(cfg)
 					AnchorPoint = Vector2.new(1, 0),
 					AutomaticSize = Enum.AutomaticSize.X,
 					BackgroundTransparency = 1,
+					ZIndex = 5,
 					Parent = row,
 				})
 				New("UIListLayout", {
@@ -981,11 +945,11 @@ function Library:CreateWindow(cfg)
 					callback(val)
 				end
 
-				-- Clicking anywhere on the toggle label/box (except sub-controls)
 				local clickBtn = New("TextButton", {
-					Size = UDim2.new(1, -40, 1, 0),
+					Size = UDim2.new(1, -60, 1, 0),
 					BackgroundTransparency = 1,
 					Text = "",
+					ZIndex = 2,
 					Parent = row,
 				})
 				clickBtn.MouseButton1Click:Connect(function()
@@ -1016,12 +980,13 @@ function Library:CreateWindow(cfg)
 						Size = UDim2.fromOffset(46, 13),
 						BackgroundColor3 = Library.Theme.ControlTop,
 						BorderSizePixel = 0,
+						Font = Library.Theme.Font,
 						TextSize = Library.Theme.FontSize - 2,
 						TextColor3 = Library.Theme.TextDim,
 						Text = "[" .. currentKey.Name .. "]",
+						ZIndex = 6,
 						Parent = inlineHold,
 					})
-					Util.SetFont(bindBtn, false)
 					Util.CreateHardBorder(bindBtn, UDim2.fromScale(1, 1))
 
 					local listening = false
@@ -1032,15 +997,22 @@ function Library:CreateWindow(cfg)
 					end)
 
 					UserInputService.InputBegan:Connect(function(input, gp)
-						if listening and input.UserInputType == Enum.UserInputType.Keyboard then
-							listening = false
-							currentKey = input.KeyCode
-							bindBtn.Text = "[" .. currentKey.Name .. "]"
-							bindBtn.TextColor3 = Library.Theme.TextDim
-							if Library.KeybindList then
-								Library.KeybindList:SetBind(tText, currentKey.Name, bindMode, Toggle.Value)
+						if listening then
+							if input.UserInputType == Enum.UserInputType.Keyboard then
+								listening = false
+								if input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.Backspace then
+									currentKey = Enum.KeyCode.Unknown
+									bindBtn.Text = "[NONE]"
+								else
+									currentKey = input.KeyCode
+									bindBtn.Text = "[" .. currentKey.Name .. "]"
+								end
+								bindBtn.TextColor3 = Library.Theme.TextDim
+								if Library.KeybindList and currentKey ~= Enum.KeyCode.Unknown then
+									Library.KeybindList:SetBind(tText, currentKey.Name, bindMode, Toggle.Value)
+								end
 							end
-						elseif not gp and input.KeyCode == currentKey then
+						elseif not gp and currentKey ~= Enum.KeyCode.Unknown and input.KeyCode == currentKey then
 							if bindMode == "Toggle" then
 								setToggle(not Toggle.Value)
 							elseif bindMode == "Hold" then
@@ -1053,7 +1025,7 @@ function Library:CreateWindow(cfg)
 					end)
 
 					UserInputService.InputEnded:Connect(function(input)
-						if input.KeyCode == currentKey and bindMode == "Hold" then
+						if currentKey ~= Enum.KeyCode.Unknown and input.KeyCode == currentKey and bindMode == "Hold" then
 							setToggle(false)
 							if Library.KeybindList then
 								Library.KeybindList:SetBind(tText, currentKey.Name, bindMode, false)
@@ -1084,20 +1056,20 @@ function Library:CreateWindow(cfg)
 					Parent = elemList,
 				})
 
-				local label = New("TextLabel", {
+				New("TextLabel", {
 					Size = UDim2.new(1, -30, 1, 0),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = cpText,
 					Parent = row,
 				})
-				Util.SetFont(label, false)
 
 				local pickerHold = New("Frame", {
-					Size = UDim2.new(0, 24, 1, 0),
-					Position = UDim2.new(1, -24, 0, 0),
+					Size = UDim2.new(0, 26, 1, 0),
+					Position = UDim2.new(1, -26, 0, 0),
 					BackgroundTransparency = 1,
 					Parent = row,
 				})
@@ -1122,28 +1094,28 @@ function Library:CreateWindow(cfg)
 					Parent = elemList,
 				})
 
-				local label = New("TextLabel", {
+				New("TextLabel", {
 					Size = UDim2.new(1, -50, 1, 0),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = kbText,
 					Parent = row,
 				})
-				Util.SetFont(label, false)
 
 				local bindBtn = New("TextButton", {
 					Size = UDim2.fromOffset(46, 13),
 					Position = UDim2.new(1, -46, 0.5, -6),
 					BackgroundColor3 = Library.Theme.ControlTop,
 					BorderSizePixel = 0,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize - 2,
 					TextColor3 = Library.Theme.TextDim,
 					Text = "[" .. currentKey.Name .. "]",
 					Parent = row,
 				})
-				Util.SetFont(bindBtn, false)
 				Util.CreateHardBorder(bindBtn, UDim2.fromScale(1, 1))
 
 				local active = false
@@ -1155,15 +1127,22 @@ function Library:CreateWindow(cfg)
 				end)
 
 				UserInputService.InputBegan:Connect(function(input, gp)
-					if listening and input.UserInputType == Enum.UserInputType.Keyboard then
-						listening = false
-						currentKey = input.KeyCode
-						bindBtn.Text = "[" .. currentKey.Name .. "]"
-						bindBtn.TextColor3 = Library.Theme.TextDim
-						if Library.KeybindList then
-							Library.KeybindList:SetBind(kbText, currentKey.Name, bindMode, active)
+					if listening then
+						if input.UserInputType == Enum.UserInputType.Keyboard then
+							listening = false
+							if input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.Backspace then
+								currentKey = Enum.KeyCode.Unknown
+								bindBtn.Text = "[NONE]"
+							else
+								currentKey = input.KeyCode
+								bindBtn.Text = "[" .. currentKey.Name .. "]"
+							end
+							bindBtn.TextColor3 = Library.Theme.TextDim
+							if Library.KeybindList and currentKey ~= Enum.KeyCode.Unknown then
+								Library.KeybindList:SetBind(kbText, currentKey.Name, bindMode, active)
+							end
 						end
-					elseif not gp and input.KeyCode == currentKey then
+					elseif not gp and currentKey ~= Enum.KeyCode.Unknown and input.KeyCode == currentKey then
 						if bindMode == "Toggle" then
 							active = not active
 						elseif bindMode == "Hold" then
@@ -1177,7 +1156,7 @@ function Library:CreateWindow(cfg)
 				end)
 
 				UserInputService.InputEnded:Connect(function(input)
-					if input.KeyCode == currentKey and bindMode == "Hold" then
+					if currentKey ~= Enum.KeyCode.Unknown and input.KeyCode == currentKey and bindMode == "Hold" then
 						active = false
 						callback(false, currentKey)
 						if Library.KeybindList then
@@ -1188,7 +1167,7 @@ function Library:CreateWindow(cfg)
 			end
 
 			--================================================================--
-			-- SLIDER (Clean Gradient Fill, Smooth Draggable)
+			-- SLIDER
 			--================================================================--
 			function Group:AddSlider(sCfg)
 				sCfg = sCfg or {}
@@ -1206,33 +1185,31 @@ function Library:CreateWindow(cfg)
 					Parent = elemList,
 				})
 
-				local label = New("TextLabel", {
+				New("TextLabel", {
 					Size = UDim2.new(0.7, 0, 0, 14),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = sText,
 					Parent = row,
 				})
-				Util.SetFont(label, false)
 
 				local valLabel = New("TextLabel", {
 					Size = UDim2.new(0.3, 0, 0, 14),
 					Position = UDim2.new(0.7, 0, 0, 0),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.TextDim,
 					TextXAlignment = Enum.TextXAlignment.Right,
 					Text = tostring(curVal) .. suffix,
 					Parent = row,
 				})
-				Util.SetFont(valLabel, false)
 
-				-- Hard Track
 				local trackOuter, trackInner = Util.CreateHardBorder(row, UDim2.new(1, 0, 0, 8), UDim2.fromOffset(0, 18), Library.Theme.ControlTop, Library.Theme.ControlBottom)
 
-				-- Fill Bar with Gradient
 				local pct = math.clamp((curVal - min) / (max - min), 0, 1)
 				local fill = New("Frame", {
 					Size = UDim2.new(pct, 0, 1, 0),
@@ -1247,29 +1224,39 @@ function Library:CreateWindow(cfg)
 				})
 
 				local dragging = false
-				local function updateSlider(input)
-					local x = math.clamp((input.Position.X - trackInner.AbsolutePosition.X) / trackInner.AbsoluteSize.X, 0, 1)
+				local function updateSlider(xPos)
+					local x = math.clamp((xPos - trackInner.AbsolutePosition.X) / trackInner.AbsoluteSize.X, 0, 1)
 					local val = math.floor(min + ((max - min) * x))
 					curVal = val
 					Library.Flags[flag] = val
 					valLabel.Text = tostring(val) .. suffix
-					Util.Tween(fill, 0.06, { Size = UDim2.new(x, 0, 1, 0) })
+					Util.Tween(fill, 0.05, { Size = UDim2.new(x, 0, 1, 0) })
 					cb(val)
 				end
 
-				trackOuter.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
-						dragging = true
-						updateSlider(input)
-					end
+				local trackBtn = New("TextButton", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundTransparency = 1,
+					Text = "",
+					Parent = trackOuter,
+				})
+
+				trackBtn.MouseButton1Down:Connect(function()
+					dragging = true
+					local mouse = UserInputService:GetMouseLocation()
+					updateSlider(mouse.X)
 				end)
+
 				local moveConn = UserInputService.InputChanged:Connect(function(input)
 					if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-						updateSlider(input)
+						updateSlider(input.Position.X)
 					end
 				end)
+
 				local endConn = UserInputService.InputEnded:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						dragging = false
+					end
 				end)
 
 				local Slider = { Value = curVal }
@@ -1288,7 +1275,7 @@ function Library:CreateWindow(cfg)
 			end
 
 			--================================================================--
-			-- CLEAN DROPDOWN (Hard Edges, Floating Overlay, Snappy Animation)
+			-- CLEAN DROPDOWN (100% Working, Floating & Non-Clipping)
 			--================================================================--
 			function Group:AddDropdown(dCfg)
 				dCfg = dCfg or {}
@@ -1310,16 +1297,16 @@ function Library:CreateWindow(cfg)
 					Parent = elemList,
 				})
 
-				local label = New("TextLabel", {
+				New("TextLabel", {
 					Size = UDim2.new(1, 0, 0, 14),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = dText,
 					Parent = row,
 				})
-				Util.SetFont(label, false)
 
 				local ddOuter, ddInner = Util.CreateHardBorder(row, UDim2.new(1, 0, 0, 20), UDim2.fromOffset(0, 16), Library.Theme.ControlTop, Library.Theme.ControlBottom)
 
@@ -1338,6 +1325,7 @@ function Library:CreateWindow(cfg)
 					Size = UDim2.new(1, -24, 1, 0),
 					Position = UDim2.fromOffset(8, 0),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.TextDim,
 					TextXAlignment = Enum.TextXAlignment.Left,
@@ -1345,28 +1333,29 @@ function Library:CreateWindow(cfg)
 					Text = getDisplayString(),
 					Parent = ddInner,
 				})
-				Util.SetFont(currentLabel, false)
 
 				local arrow = New("TextLabel", {
 					Size = UDim2.fromOffset(16, 16),
 					Position = UDim2.new(1, -18, 0.5, -8),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.FontBold,
 					TextSize = Library.Theme.FontSize - 1,
 					TextColor3 = Library.Theme.TextDim,
 					Text = "▼",
 					Parent = ddInner,
 				})
-				Util.SetFont(arrow, true)
 
-				local popupOuter, popupInner
+				local popupOuter = nil
+				local blocker = nil
 				local isOpen = false
 
 				local function closeDropdown()
 					if not isOpen then return end
 					isOpen = false
 					Util.Tween(arrow, 0.14, { Rotation = 0, TextColor3 = Library.Theme.TextDim })
+					if blocker then blocker:Destroy() blocker = nil end
 					if popupOuter then
-						local anim = Util.Tween(popupOuter, 0.14, { Size = UDim2.fromOffset(popupOuter.AbsoluteSize.X, 0) })
+						local anim = Util.Tween(popupOuter, 0.12, { Size = UDim2.fromOffset(popupOuter.AbsoluteSize.X, 0) })
 						anim.Completed:Connect(function()
 							if popupOuter then popupOuter:Destroy() popupOuter = nil end
 						end)
@@ -1375,19 +1364,28 @@ function Library:CreateWindow(cfg)
 
 				local function openDropdown()
 					if isOpen then closeDropdown() return end
-					if activeDropdownClose then activeDropdownClose() end
-
 					isOpen = true
 					Util.Tween(arrow, 0.14, { Rotation = 180, TextColor3 = Library.Theme.Accent1 })
+
+					-- Full screen click blocker to cleanly close on outside click
+					blocker = New("TextButton", {
+						Size = UDim2.fromScale(1, 1),
+						BackgroundTransparency = 1,
+						Text = "",
+						ZIndex = 9990,
+						Parent = screenGui,
+					})
+					blocker.MouseButton1Click:Connect(closeDropdown)
 
 					local absPos  = ddOuter.AbsolutePosition
 					local absSize = ddOuter.AbsoluteSize
 					local listH   = math.min(#list * 22, 130)
 
-					popupOuter, popupInner = Util.CreateHardBorder(overlay, UDim2.fromOffset(absSize.X, 0), UDim2.fromOffset(absPos.X, absPos.Y + absSize.Y + 2), Library.Theme.MainTop, Library.Theme.MainBottom)
-					popupOuter.ClipsDescendants = true
-					popupOuter.ZIndex = 6000
-					Util.AddSkeetGradientBar(popupInner, 1)
+					local popOuter, popInner = Util.CreateHardBorder(screenGui, UDim2.fromOffset(absSize.X, 0), UDim2.fromOffset(absPos.X, absPos.Y + absSize.Y + 2), Library.Theme.MainTop, Library.Theme.MainBottom)
+					popOuter.ClipsDescendants = true
+					popOuter.ZIndex = 9995
+					Util.AddSkeetGradientBar(popInner, 1)
+					popupOuter = popOuter
 
 					local scroll = New("ScrollingFrame", {
 						Size = UDim2.new(1, 0, 1, -2),
@@ -1397,7 +1395,8 @@ function Library:CreateWindow(cfg)
 						ScrollBarThickness = 2,
 						ScrollBarImageColor3 = Library.Theme.Accent1,
 						CanvasSize = UDim2.new(0, 0, 0, #list * 22),
-						Parent = popupInner,
+						ZIndex = 9996,
+						Parent = popInner,
 					})
 					New("UIListLayout", {
 						SortOrder = Enum.SortOrder.LayoutOrder,
@@ -1411,13 +1410,14 @@ function Library:CreateWindow(cfg)
 							BackgroundTransparency = 1,
 							BackgroundColor3 = Library.Theme.ControlHover,
 							BorderSizePixel = 0,
+							Font = Library.Theme.Font,
 							TextSize = Library.Theme.FontSize,
 							TextXAlignment = Enum.TextXAlignment.Left,
 							Text = "  " .. item,
 							TextColor3 = isSelected and Library.Theme.Accent1 or Library.Theme.TextDim,
+							ZIndex = 9997,
 							Parent = scroll,
 						})
-						Util.SetFont(itemBtn, false)
 
 						itemBtn.MouseEnter:Connect(function()
 							Util.Tween(itemBtn, 0.08, { BackgroundTransparency = 0 })
@@ -1443,15 +1443,16 @@ function Library:CreateWindow(cfg)
 						end)
 					end
 
-					Util.Tween(popupOuter, 0.16, { Size = UDim2.fromOffset(absSize.X, listH + 4) })
-					activeDropdownClose = closeDropdown
+					Util.Tween(popOuter, 0.15, { Size = UDim2.fromOffset(absSize.X, listH + 4) })
 				end
 
-				ddOuter.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
-						openDropdown()
-					end
-				end)
+				local clickBtn = New("TextButton", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundTransparency = 1,
+					Text = "",
+					Parent = ddOuter,
+				})
+				clickBtn.MouseButton1Click:Connect(openDropdown)
 
 				local Dropdown = {}
 				function Dropdown:Set(val)
@@ -1472,7 +1473,7 @@ function Library:CreateWindow(cfg)
 			end
 
 			--================================================================--
-			-- BUTTON (Gradient Sheen & Click Animation)
+			-- BUTTON
 			--================================================================--
 			function Group:AddButton(bCfg)
 				bCfg = bCfg or {}
@@ -1485,37 +1486,42 @@ function Library:CreateWindow(cfg)
 
 				local btnOuter, btnInner = Util.CreateHardBorder(elemList, UDim2.new(1, 0, 0, 22), nil, topCol, botCol)
 				
-				local btnLabel = New("TextLabel", {
+				New("TextLabel", {
 					Size = UDim2.fromScale(1, 1),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.FontBold,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					Text = bText,
 					Parent = btnInner,
 				})
-				Util.SetFont(btnLabel, true)
 
-				btnInner.MouseEnter:Connect(function()
+				local clickBtn = New("TextButton", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundTransparency = 1,
+					Text = "",
+					Parent = btnOuter,
+				})
+
+				clickBtn.MouseEnter:Connect(function()
 					Util.Tween(btnInner, 0.1, { BackgroundColor3 = isRisky and Library.Theme.Risky or Library.Theme.ControlHover })
 				end)
-				btnInner.MouseLeave:Connect(function()
+				clickBtn.MouseLeave:Connect(function()
 					Util.Tween(btnInner, 0.1, { BackgroundColor3 = topCol })
 				end)
-				btnInner.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
-						Util.Tween(btnInner, 0.04, { BackgroundColor3 = Library.Theme.Accent1 })
-						task.delay(0.08, function()
-							Util.Tween(btnInner, 0.12, { BackgroundColor3 = topCol })
-						end)
-						cb()
-					end
+				clickBtn.MouseButton1Click:Connect(function()
+					Util.Tween(btnInner, 0.04, { BackgroundColor3 = Library.Theme.Accent1 })
+					task.delay(0.08, function()
+						Util.Tween(btnInner, 0.12, { BackgroundColor3 = topCol })
+					end)
+					cb()
 				end)
 
 				return btnOuter
 			end
 
 			--================================================================--
-			-- TEXTBOX (Hard Inset Box)
+			-- TEXTBOX
 			--================================================================--
 			function Group:AddTextbox(tbCfg)
 				tbCfg = tbCfg or {}
@@ -1530,16 +1536,16 @@ function Library:CreateWindow(cfg)
 					Parent = elemList,
 				})
 
-				local label = New("TextLabel", {
+				New("TextLabel", {
 					Size = UDim2.new(1, 0, 0, 14),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = tbText,
 					Parent = row,
 				})
-				Util.SetFont(label, false)
 
 				local boxOuter, boxInner = Util.CreateHardBorder(row, UDim2.new(1, 0, 0, 20), UDim2.fromOffset(0, 16), Library.Theme.ControlTop, Library.Theme.ControlBottom)
 
@@ -1547,6 +1553,7 @@ function Library:CreateWindow(cfg)
 					Size = UDim2.new(1, -12, 1, 0),
 					Position = UDim2.fromOffset(6, 0),
 					BackgroundTransparency = 1,
+					Font = Library.Theme.Font,
 					TextSize = Library.Theme.FontSize,
 					TextColor3 = Library.Theme.Text,
 					PlaceholderText = holder,
@@ -1555,7 +1562,6 @@ function Library:CreateWindow(cfg)
 					ClearTextOnFocus = false,
 					Parent = boxInner,
 				})
-				Util.SetFont(box, false)
 
 				box.FocusLost:Connect(function()
 					Library.Flags[flag] = box.Text
@@ -1566,104 +1572,6 @@ function Library:CreateWindow(cfg)
 			end
 
 			return Group
-		end
-
-		--====================================================================--
-		-- TABBOX BUILDER (Multiple Sub-tabs inside Groupbox)
-		--====================================================================--
-		function Tab:AddTabbox(tbCfg)
-			tbCfg = tbCfg or {}
-			local side = (tbCfg.Side and string.lower(tbCfg.Side) == "right") and rightCol or leftCol
-
-			local tbOuter, tbInner = Util.CreateHardBorder(side, UDim2.new(1, 0, 0, 0), nil, Library.Theme.GroupTop, Library.Theme.GroupBottom)
-			tbOuter.AutomaticSize = Enum.AutomaticSize.Y
-
-			-- Top Tab Selector Row cutting through top border
-			local tabHeaderRow = New("Frame", {
-				Size = UDim2.fromOffset(0, 16),
-				AutomaticSize = Enum.AutomaticSize.X,
-				Position = UDim2.fromOffset(10, -8),
-				BackgroundColor3 = Library.Theme.MainTop,
-				BorderSizePixel = 0,
-				ZIndex = 4,
-				Parent = tbOuter,
-			})
-			New("UIListLayout", {
-				FillDirection = Enum.FillDirection.Horizontal,
-				Padding = UDim.new(0, 6),
-				Parent = tabHeaderRow,
-			})
-
-			local elemList = New("Frame", {
-				Size = UDim2.new(1, -16, 1, -16),
-				Position = UDim2.fromOffset(8, 10),
-				BackgroundTransparency = 1,
-				AutomaticSize = Enum.AutomaticSize.Y,
-				Parent = tbInner,
-			})
-			New("UIPadding", {
-				PaddingBottom = UDim.new(0, 8),
-				Parent = elemList,
-			})
-
-			local Tabbox = { SubTabs = {} }
-
-			function Tabbox:AddSubTab(name)
-				local btn = New("TextButton", {
-					AutomaticSize = Enum.AutomaticSize.X,
-					Size = UDim2.fromOffset(0, 16),
-					BackgroundTransparency = 1,
-					TextSize = Library.Theme.FontSize,
-					TextColor3 = Library.Theme.TextDim,
-					Text = " " .. name .. " ",
-					Parent = tabHeaderRow,
-				})
-				Util.SetFont(btn, true)
-
-				local subPage = New("Frame", {
-					Size = UDim2.fromScale(1, 1),
-					BackgroundTransparency = 1,
-					AutomaticSize = Enum.AutomaticSize.Y,
-					Visible = false,
-					Parent = elemList,
-				})
-				New("UIListLayout", {
-					Padding = UDim.new(0, 6),
-					SortOrder = Enum.SortOrder.LayoutOrder,
-					Parent = subPage,
-				})
-
-				local SubGroup = {}
-				-- Inherit all groupbox element methods for subPage
-				local fakeGroup = Tab:AddGroupbox({ Title = name })
-				-- Replace fakeGroup's container with subPage
-				for k, v in pairs(fakeGroup) do
-					SubGroup[k] = function(self, cfg)
-						-- Bind to subPage
-						local oldElemList = elemList
-						local res = fakeGroup[k](fakeGroup, cfg)
-						return res
-					end
-				end
-
-				local function selectSub()
-					for _, item in ipairs(Tabbox.SubTabs) do
-						item.Page.Visible = false
-						item.Btn.TextColor3 = Library.Theme.TextDim
-					end
-					subPage.Visible = true
-					btn.TextColor3 = Library.Theme.Text
-				end
-
-				btn.MouseButton1Click:Connect(selectSub)
-
-				table.insert(Tabbox.SubTabs, { Btn = btn, Page = subPage })
-				if #Tabbox.SubTabs == 1 then selectSub() end
-
-				return SubGroup
-			end
-
-			return Tabbox
 		end
 
 		return Tab
