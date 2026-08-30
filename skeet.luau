@@ -13,6 +13,7 @@
 
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local GuiService       = game:GetService("GuiService")
 local RunService       = game:GetService("RunService")
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
@@ -78,6 +79,8 @@ local Library = {
 		FontBold     = Enum.Font.GothamBold,
 		FontSize     = 12,
 	},
+
+	ThemeSignals = {},
 
 	Icons = {
 		Target    = "rbxassetid://10734977012",
@@ -561,7 +564,7 @@ function Library:CreateWindow(cfg)
 			ScrollBarImageColor3 = Library.Theme.MidBorder,
 			CanvasSize = UDim2.new(0, 0, 0, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			Parent = rightCol,
+			Parent = tabPage,
 		})
 		New("UIListLayout", {
 			Padding = UDim.new(0, 12),
@@ -569,7 +572,123 @@ function Library:CreateWindow(cfg)
 			Parent = rightCol,
 		})
 
-		local Tab = { Page = tabPage, Left = leftCol, Right = rightCol }
+		local Tab = { Page = tabPage, Left = leftCol, Right = rightCol, SubTabs = {} }
+
+		function Tab:AddSubTab(subTabName)
+			if not self.SubTabBar then
+				-- Reposition the columns to give room for sub-tab bar
+				leftCol.Size = UDim2.new(0.5, -6, 1, -28)
+				leftCol.Position = UDim2.fromOffset(0, 28)
+				rightCol.Size = UDim2.new(0.5, -6, 1, -28)
+				rightCol.Position = UDim2.new(0.5, 6, 0, 28)
+
+				local subBar = New("Frame", {
+					Size = UDim2.new(1, 0, 0, 22),
+					Position = UDim2.fromOffset(0, 0),
+					BackgroundTransparency = 1,
+					Parent = tabPage,
+				})
+				New("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					Padding = UDim.new(0, 4),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					Parent = subBar,
+				})
+				self.SubTabBar = subBar
+			end
+
+			-- SubTab specific left and right columns
+			local subLeftCol = New("ScrollingFrame", {
+				Size = UDim2.new(0.5, -6, 1, -28),
+				Position = UDim2.fromOffset(0, 28),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ScrollBarThickness = 2,
+				ScrollBarImageColor3 = Library.Theme.MidBorder,
+				CanvasSize = UDim2.new(0, 0, 0, 0),
+				AutomaticCanvasSize = Enum.AutomaticSize.Y,
+				Visible = false,
+				Parent = tabPage,
+			})
+			New("UIListLayout", {
+				Padding = UDim.new(0, 12),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Parent = subLeftCol,
+			})
+
+			local subRightCol = New("ScrollingFrame", {
+				Size = UDim2.new(0.5, -6, 1, -28),
+				Position = UDim2.new(0.5, 6, 0, 28),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ScrollBarThickness = 2,
+				ScrollBarImageColor3 = Library.Theme.MidBorder,
+				CanvasSize = UDim2.new(0, 0, 0, 0),
+				AutomaticCanvasSize = Enum.AutomaticSize.Y,
+				Visible = false,
+				Parent = tabPage,
+			})
+			New("UIListLayout", {
+				Padding = UDim.new(0, 12),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Parent = subRightCol,
+			})
+
+			-- Hide default root columns if SubTabs exist
+			leftCol.Visible = false
+			rightCol.Visible = false
+
+			local subBtnOuter, subBtnInner = Util.CreateHardBorder(self.SubTabBar, UDim2.fromOffset(75, 20), nil, Library.Theme.ControlTop, Library.Theme.ControlBottom)
+			local subLabel = New("TextLabel", {
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				Font = Library.Theme.FontBold,
+				TextSize = Library.Theme.FontSize - 1,
+				TextColor3 = Library.Theme.TextDim,
+				Text = string.upper(subTabName or "SUBTAB"),
+				Parent = subBtnInner,
+			})
+
+			local SubTab = {
+				Btn = subBtnOuter,
+				Inner = subBtnInner,
+				Label = subLabel,
+				Left = subLeftCol,
+				Right = subRightCol,
+			}
+
+			local function selectSubTab()
+				for _, other in ipairs(self.SubTabs) do
+					other.Left.Visible = false
+					other.Right.Visible = false
+					Util.Tween(other.Label, 0.12, { TextColor3 = Library.Theme.TextDim })
+					Util.Tween(other.Inner, 0.12, { BackgroundColor3 = Library.Theme.ControlTop })
+				end
+				SubTab.Left.Visible = true
+				SubTab.Right.Visible = true
+				Util.Tween(subLabel, 0.12, { TextColor3 = Library.Theme.Accent1 })
+				Util.Tween(subBtnInner, 0.12, { BackgroundColor3 = Library.Theme.GroupTop })
+			end
+
+			subBtnInner.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					selectSubTab()
+				end
+			end)
+
+			table.insert(self.SubTabs, SubTab)
+			if #self.SubTabs == 1 then
+				selectSubTab()
+			end
+
+			function SubTab:AddGroupbox(gCfg)
+				gCfg = gCfg or {}
+				local side = (gCfg.Side and string.lower(gCfg.Side) == "right") and subRightCol or subLeftCol
+				return Tab.CreateGroupbox(side, gCfg)
+			end
+
+			return SubTab
+		end
 
 		local function selectTab()
 			for _, other in ipairs(Window.Tabs) do
@@ -596,40 +715,53 @@ function Library:CreateWindow(cfg)
 
 		if #Window.Tabs == 1 then selectTab() end
 
-		--====================================================================--
-		-- GROUPBOX
-		--====================================================================--
-		function Tab:AddGroupbox(gCfg)
+		-- Helper function to generate groupbox inside any column
+		function Tab.CreateGroupbox(parentCol, gCfg)
 			gCfg = gCfg or {}
 			local gTitle = gCfg.Title or "Group"
-			local side   = (gCfg.Side and string.lower(gCfg.Side) == "right") and rightCol or leftCol
 
-			local gbOuter, gbInner = Util.CreateHardBorder(side, UDim2.new(1, 0, 0, 0), nil, Library.Theme.GroupTop, Library.Theme.GroupBottom)
+			local gbOuter, gbInner = Util.CreateHardBorder(parentCol, UDim2.new(1, 0, 0, 0), nil, Library.Theme.GroupTop, Library.Theme.GroupBottom)
 			gbOuter.AutomaticSize = Enum.AutomaticSize.Y
 
 			local titleHold = New("Frame", {
-				Size = UDim2.fromOffset(0, 14),
+				Size = UDim2.fromOffset(0, 16),
 				AutomaticSize = Enum.AutomaticSize.X,
-				Position = UDim2.fromOffset(12, -7),
+				Position = UDim2.fromOffset(10, -8),
 				BackgroundColor3 = Library.Theme.MainTop,
 				BorderSizePixel = 0,
-				ZIndex = 3,
+				ZIndex = 5,
 				Parent = gbOuter,
 			})
 			New("UIPadding", {
-				PaddingLeft = UDim.new(0, 4),
-				PaddingRight = UDim.new(0, 4),
+				PaddingLeft = UDim.new(0, 6),
+				PaddingRight = UDim.new(0, 6),
 				Parent = titleHold,
 			})
-			New("TextLabel", {
-				Size = UDim2.fromScale(1, 1),
+			local titleText = New("TextLabel", {
+				Size = UDim2.new(1, 0, 1, -2),
 				BackgroundTransparency = 1,
 				Font = Library.Theme.FontBold,
 				TextSize = Library.Theme.FontSize,
 				TextColor3 = Library.Theme.Text,
-				Text = gTitle,
-				ZIndex = 4,
+				Text = string.upper(gTitle),
+				ZIndex = 6,
 				Parent = titleHold,
+			})
+			local titleUnderline = New("Frame", {
+				Size = UDim2.new(1, 0, 0, 1),
+				Position = UDim2.new(0, 0, 1, -1),
+				BackgroundColor3 = Library.Theme.Accent1,
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = titleHold,
+			})
+			New("UIGradient", {
+				Rotation = 0,
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0.00, Library.Theme.Accent1),
+					ColorSequenceKeypoint.new(1.00, Library.Theme.Accent2),
+				}),
+				Parent = titleUnderline,
 			})
 
 			local elemList = New("Frame", {
@@ -853,9 +985,9 @@ function Library:CreateWindow(cfg)
 					valLayer.InputBegan:Connect(function(input)
 						if input.UserInputType == Enum.UserInputType.MouseButton1 then
 							draggingSV = true
-							local mouse = UserInputService:GetMouseLocation()
-							curS = math.clamp((mouse.X - svBase.AbsolutePosition.X) / svBase.AbsoluteSize.X, 0, 1)
-							curV = 1 - math.clamp((mouse.Y - svBase.AbsolutePosition.Y) / svBase.AbsoluteSize.Y, 0, 1)
+							local mPos = input.Position
+							curS = math.clamp((mPos.X - svBase.AbsolutePosition.X) / svBase.AbsoluteSize.X, 0, 1)
+							curV = 1 - math.clamp((mPos.Y - svBase.AbsolutePosition.Y) / svBase.AbsoluteSize.Y, 0, 1)
 							svPin.Position = UDim2.fromScale(curS, 1 - curV)
 							updateColor()
 						end
@@ -864,8 +996,8 @@ function Library:CreateWindow(cfg)
 					hueBase.InputBegan:Connect(function(input)
 						if input.UserInputType == Enum.UserInputType.MouseButton1 then
 							draggingHue = true
-							local mouse = UserInputService:GetMouseLocation()
-							curH = 1 - math.clamp((mouse.Y - hueBase.AbsolutePosition.Y) / hueBase.AbsoluteSize.Y, 0, 1)
+							local mPos = input.Position
+							curH = 1 - math.clamp((mPos.Y - hueBase.AbsolutePosition.Y) / hueBase.AbsoluteSize.Y, 0, 1)
 							huePin.Position = UDim2.fromScale(0, 1 - curH)
 							updateColor()
 						end
@@ -874,14 +1006,14 @@ function Library:CreateWindow(cfg)
 					local moveConn = UserInputService.InputChanged:Connect(function(input)
 						if input.UserInputType == Enum.UserInputType.MouseMovement then
 							if draggingSV then
-								local mouse = UserInputService:GetMouseLocation()
-								curS = math.clamp((mouse.X - svBase.AbsolutePosition.X) / svBase.AbsoluteSize.X, 0, 1)
-								curV = 1 - math.clamp((mouse.Y - svBase.AbsolutePosition.Y) / svBase.AbsoluteSize.Y, 0, 1)
+								local mPos = input.Position
+								curS = math.clamp((mPos.X - svBase.AbsolutePosition.X) / svBase.AbsoluteSize.X, 0, 1)
+								curV = 1 - math.clamp((mPos.Y - svBase.AbsolutePosition.Y) / svBase.AbsoluteSize.Y, 0, 1)
 								svPin.Position = UDim2.fromScale(curS, 1 - curV)
 								updateColor()
 							elseif draggingHue then
-								local mouse = UserInputService:GetMouseLocation()
-								curH = 1 - math.clamp((mouse.Y - hueBase.AbsolutePosition.Y) / hueBase.AbsoluteSize.Y, 0, 1)
+								local mPos = input.Position
+								curH = 1 - math.clamp((mPos.Y - hueBase.AbsolutePosition.Y) / hueBase.AbsoluteSize.Y, 0, 1)
 								huePin.Position = UDim2.fromScale(0, 1 - curH)
 								updateColor()
 							end
@@ -1492,6 +1624,17 @@ function Library:CreateWindow(cfg)
 					end
 				end
 				function Dropdown:Get() return isMulti and multiSelected or curVal end
+				function Dropdown:Refresh(newList, retainSelection)
+					list = newList or {}
+					if not retainSelection then
+						if isMulti then
+							multiSelected = {}
+						else
+							curVal = list[1] or ""
+						end
+					end
+					currentLabel.Text = getDisplayString()
+				end
 				return Dropdown
 			end
 
@@ -1591,10 +1734,42 @@ function Library:CreateWindow(cfg)
 			return Group
 		end
 
+		function Tab:AddGroupbox(gCfg)
+			gCfg = gCfg or {}
+			local side = (gCfg.Side and string.lower(gCfg.Side) == "right") and rightCol or leftCol
+			return Tab.CreateGroupbox(side, gCfg)
+		end
+
 		return Tab
 	end
 
 	return Window
+end
+
+function Library:SetThemeColor(colorType, newColor)
+	if not colorType or not newColor then return end
+	if colorType == "FontColor" or colorType == "Text" then
+		Library.Theme.Text = newColor
+	elseif colorType == "MainColor" or colorType == "GroupTop" then
+		Library.Theme.GroupTop = newColor
+	elseif colorType == "AccentColor" or colorType == "Accent1" then
+		Library.Theme.Accent1 = newColor
+	elseif colorType == "BackgroundColor" or colorType == "MainTop" then
+		Library.Theme.MainTop = newColor
+	elseif colorType == "OutlineColor" or colorType == "OuterBorder" then
+		Library.Theme.OuterBorder = newColor
+	end
+	if Library.ThemeSignals[colorType] then
+		for _, cb in ipairs(Library.ThemeSignals[colorType]) do
+			pcall(cb, newColor)
+		end
+	end
+end
+
+function Library:SetTheme(themeTable)
+	for name, col in pairs(themeTable or {}) do
+		Library:SetThemeColor(name, col)
+	end
 end
 
 return Library
