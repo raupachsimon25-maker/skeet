@@ -103,7 +103,7 @@ local Library = {
 }
 
 --============================================================================--
--- UTILITIES & ANIMATIONS
+-- UTILITIES & THEME REGISTRY
 --============================================================================--
 local Util = {}
 
@@ -118,13 +118,21 @@ function Util.Create(class, props, children)
 end
 local New = Util.Create
 
+function Util.RegisterTheme(inst, propName, themeKey)
+	if not Library.Registry[themeKey] then
+		Library.Registry[themeKey] = {}
+	end
+	table.insert(Library.Registry[themeKey], { Instance = inst, Property = propName })
+	return inst
+end
+
 function Util.Tween(inst, dur, props, style, dir)
 	local t = TweenService:Create(inst, TweenInfo.new(dur or 0.15, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out), props)
 	t:Play()
 	return t
 end
 
-function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom)
+function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom, isMainWin)
 	local outer = New("Frame", {
 		Size = size or UDim2.fromScale(1, 1),
 		Position = pos or UDim2.fromScale(0, 0),
@@ -132,6 +140,8 @@ function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom)
 		BorderSizePixel = 0,
 		Parent = parent,
 	})
+	Util.RegisterTheme(outer, "BackgroundColor3", "OutlineColor")
+
 	local mid = New("Frame", {
 		Size = UDim2.new(1, -2, 1, -2),
 		Position = UDim2.fromOffset(1, 1),
@@ -139,6 +149,7 @@ function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom)
 		BorderSizePixel = 0,
 		Parent = outer,
 	})
+
 	local inner = New("Frame", {
 		Size = UDim2.new(1, -2, 1, -2),
 		Position = UDim2.fromOffset(1, 1),
@@ -147,8 +158,15 @@ function Util.CreateHardBorder(parent, size, pos, bgTop, bgBottom)
 		ClipsDescendants = false,
 		Parent = mid,
 	})
+
+	if isMainWin then
+		Util.RegisterTheme(inner, "BackgroundColor3", "BackgroundColor")
+	else
+		Util.RegisterTheme(inner, "BackgroundColor3", "MainColor")
+	end
+
 	if bgTop and bgBottom then
-		New("UIGradient", {
+		local grad = New("UIGradient", {
 			Rotation = 90,
 			Color = ColorSequence.new({
 				ColorSequenceKeypoint.new(0, bgTop),
@@ -164,17 +182,19 @@ function Util.AddSkeetGradientBar(parent, height)
 	local bar = New("Frame", {
 		Size = UDim2.new(1, 0, 0, height or 2),
 		Position = UDim2.fromOffset(0, 0),
-		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundColor3 = Library.Theme.Accent1,
 		BorderSizePixel = 0,
 		ZIndex = 10,
 		Parent = parent,
 	})
-	New("UIGradient", {
+	Util.RegisterTheme(bar, "BackgroundColor3", "AccentColor")
+
+	local grad = New("UIGradient", {
 		Rotation = 0,
 		Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(54, 163, 247)),
 			ColorSequenceKeypoint.new(0.20, Color3.fromRGB(98, 216, 247)),
-			ColorSequenceKeypoint.new(0.40, Color3.fromRGB(168, 219, 95)),
+			ColorSequenceKeypoint.new(0.40, Library.Theme.Accent1),
 			ColorSequenceKeypoint.new(0.60, Color3.fromRGB(247, 184, 92)),
 			ColorSequenceKeypoint.new(0.80, Color3.fromRGB(247, 104, 181)),
 			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(184, 119, 247)),
@@ -413,7 +433,7 @@ function Library:CreateWindow(cfg)
 	local title   = cfg.Title or "skeetware.cc"
 	local winSize = cfg.Size or UDim2.fromOffset(720, 520)
 
-	local winOuter, winInner = Util.CreateHardBorder(screenGui, winSize, UDim2.fromScale(0.5, 0.5), Library.Theme.MainTop, Library.Theme.MainBottom)
+	local winOuter, winInner = Util.CreateHardBorder(screenGui, winSize, UDim2.fromScale(0.5, 0.5), Library.Theme.MainTop, Library.Theme.MainBottom, true)
 	winOuter.AnchorPoint = Vector2.new(0.5, 0.5)
 	winOuter.ZIndex = 10
 
@@ -543,12 +563,16 @@ function Library:CreateWindow(cfg)
 			Position = UDim2.fromOffset(0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 2,
-			ScrollBarImageColor3 = Library.Theme.MidBorder,
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = Library.Theme.Accent1,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			Selectable = false,
+			ClipsDescendants = true,
 			CanvasSize = UDim2.new(0, 0, 0, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			Parent = tabPage,
 		})
+		Util.RegisterTheme(leftCol, "ScrollBarImageColor3", "AccentColor")
 		New("UIListLayout", {
 			Padding = UDim.new(0, 12),
 			SortOrder = Enum.SortOrder.LayoutOrder,
@@ -560,12 +584,16 @@ function Library:CreateWindow(cfg)
 			Position = UDim2.new(0.5, 6, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 2,
-			ScrollBarImageColor3 = Library.Theme.MidBorder,
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = Library.Theme.Accent1,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			Selectable = false,
+			ClipsDescendants = true,
 			CanvasSize = UDim2.new(0, 0, 0, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			Parent = tabPage,
 		})
+		Util.RegisterTheme(rightCol, "ScrollBarImageColor3", "AccentColor")
 		New("UIListLayout", {
 			Padding = UDim.new(0, 12),
 			SortOrder = Enum.SortOrder.LayoutOrder,
@@ -603,13 +631,17 @@ function Library:CreateWindow(cfg)
 				Position = UDim2.fromOffset(0, 28),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				ScrollBarThickness = 2,
-				ScrollBarImageColor3 = Library.Theme.MidBorder,
+				ScrollBarThickness = 3,
+				ScrollBarImageColor3 = Library.Theme.Accent1,
+				ScrollingDirection = Enum.ScrollingDirection.Y,
+				Selectable = false,
+				ClipsDescendants = true,
 				CanvasSize = UDim2.new(0, 0, 0, 0),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				Visible = false,
 				Parent = tabPage,
 			})
+			Util.RegisterTheme(subLeftCol, "ScrollBarImageColor3", "AccentColor")
 			New("UIListLayout", {
 				Padding = UDim.new(0, 12),
 				SortOrder = Enum.SortOrder.LayoutOrder,
@@ -621,13 +653,17 @@ function Library:CreateWindow(cfg)
 				Position = UDim2.new(0.5, 6, 0, 28),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				ScrollBarThickness = 2,
-				ScrollBarImageColor3 = Library.Theme.MidBorder,
+				ScrollBarThickness = 3,
+				ScrollBarImageColor3 = Library.Theme.Accent1,
+				ScrollingDirection = Enum.ScrollingDirection.Y,
+				Selectable = false,
+				ClipsDescendants = true,
 				CanvasSize = UDim2.new(0, 0, 0, 0),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				Visible = false,
 				Parent = tabPage,
 			})
+			Util.RegisterTheme(subRightCol, "ScrollBarImageColor3", "AccentColor")
 			New("UIListLayout", {
 				Padding = UDim.new(0, 12),
 				SortOrder = Enum.SortOrder.LayoutOrder,
@@ -732,6 +768,8 @@ function Library:CreateWindow(cfg)
 				ZIndex = 5,
 				Parent = gbOuter,
 			})
+			Util.RegisterTheme(titleHold, "BackgroundColor3", "BackgroundColor")
+
 			New("UIPadding", {
 				PaddingLeft = UDim.new(0, 6),
 				PaddingRight = UDim.new(0, 6),
@@ -747,6 +785,8 @@ function Library:CreateWindow(cfg)
 				ZIndex = 6,
 				Parent = titleHold,
 			})
+			Util.RegisterTheme(titleText, "TextColor3", "FontColor")
+
 			local titleUnderline = New("Frame", {
 				Size = UDim2.new(1, 0, 0, 1),
 				Position = UDim2.new(0, 0, 1, -1),
@@ -755,14 +795,7 @@ function Library:CreateWindow(cfg)
 				ZIndex = 6,
 				Parent = titleHold,
 			})
-			New("UIGradient", {
-				Rotation = 0,
-				Color = ColorSequence.new({
-					ColorSequenceKeypoint.new(0.00, Library.Theme.Accent1),
-					ColorSequenceKeypoint.new(1.00, Library.Theme.Accent2),
-				}),
-				Parent = titleUnderline,
-			})
+			Util.RegisterTheme(titleUnderline, "BackgroundColor3", "AccentColor")
 
 			local elemList = New("Frame", {
 				Size = UDim2.new(1, -16, 1, -16),
@@ -1196,11 +1229,7 @@ function Library:CreateWindow(cfg)
 					BackgroundTransparency = state and 0 or 1,
 					Parent = boxInner,
 				})
-				New("UIGradient", {
-					Rotation = 90,
-					Color = ColorSequence.new(Library.Theme.Accent1, Library.Theme.AccentDark),
-					Parent = fill,
-				})
+				Util.RegisterTheme(fill, "BackgroundColor3", "AccentColor")
 
 				local label = New("TextLabel", {
 					Size = UDim2.new(1, -20, 1, 0),
@@ -1213,6 +1242,7 @@ function Library:CreateWindow(cfg)
 					Text = tText,
 					Parent = row,
 				})
+				Util.RegisterTheme(label, "TextColor3", "FontColor")
 
 				local inlineHold = New("Frame", {
 					Size = UDim2.new(0, 0, 1, 0),
@@ -1384,11 +1414,7 @@ function Library:CreateWindow(cfg)
 					BorderSizePixel = 0,
 					Parent = trackInner,
 				})
-				New("UIGradient", {
-					Rotation = 90,
-					Color = ColorSequence.new(Library.Theme.Accent1, Library.Theme.AccentDark),
-					Parent = fill,
-				})
+				Util.RegisterTheme(fill, "BackgroundColor3", "AccentColor")
 
 				local dragging = false
 				local function updateSlider(xPos)
@@ -1748,19 +1774,38 @@ end
 
 function Library:SetThemeColor(colorType, newColor)
 	if not colorType or not newColor then return end
+
+	local internalKey = colorType
 	if colorType == "FontColor" or colorType == "Text" then
+		internalKey = "FontColor"
 		Library.Theme.Text = newColor
 	elseif colorType == "MainColor" or colorType == "GroupTop" then
+		internalKey = "MainColor"
 		Library.Theme.GroupTop = newColor
 	elseif colorType == "AccentColor" or colorType == "Accent1" then
+		internalKey = "AccentColor"
 		Library.Theme.Accent1 = newColor
 	elseif colorType == "BackgroundColor" or colorType == "MainTop" then
+		internalKey = "BackgroundColor"
 		Library.Theme.MainTop = newColor
 	elseif colorType == "OutlineColor" or colorType == "OuterBorder" then
+		internalKey = "OutlineColor"
 		Library.Theme.OuterBorder = newColor
 	end
-	if Library.ThemeSignals[colorType] then
-		for _, cb in ipairs(Library.ThemeSignals[colorType]) do
+
+	-- Live-update all registered UI elements across the whole menu
+	if Library.Registry[internalKey] then
+		for _, item in ipairs(Library.Registry[internalKey]) do
+			if item.Instance and item.Instance.Parent then
+				pcall(function()
+					item.Instance[item.Property] = newColor
+				end)
+			end
+		end
+	end
+
+	if Library.ThemeSignals[internalKey] then
+		for _, cb in ipairs(Library.ThemeSignals[internalKey]) do
 			pcall(cb, newColor)
 		end
 	end
