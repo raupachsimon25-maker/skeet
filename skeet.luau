@@ -204,6 +204,26 @@ function Util.AddSkeetGradientBar(parent, height)
 	return bar
 end
 
+function Util.AddGlowEffect(parent, intensity)
+	local glow = New("Frame", {
+		Size = UDim2.new(1, 6, 1, 6),
+		Position = UDim2.fromOffset(-3, -3),
+		BackgroundColor3 = Library.Theme.Accent1,
+		BackgroundTransparency = 0.85,
+		BorderSizePixel = 0,
+		ZIndex = parent.ZIndex - 1,
+		Parent = parent.Parent,
+	})
+	Util.RegisterTheme(glow, "BackgroundColor3", "AccentColor")
+	
+	local corner = New("UICorner", {
+		CornerRadius = UDim.new(0, 4),
+		Parent = glow,
+	})
+	
+	return glow
+end
+
 --============================================================================--
 -- WATERMARK HUD
 --============================================================================--
@@ -517,7 +537,19 @@ function Library:CreateWindow(cfg)
 
 	function Window:AddTab(tabName, iconAsset)
 		local tabBtnOuter, tabBtnInner = Util.CreateHardBorder(tabListFrame, UDim2.fromOffset(95, 26), nil, Library.Theme.ControlTop, Library.Theme.ControlBottom)
-		
+
+		local tabGlow = New("Frame", {
+			Size = UDim2.new(1, 4, 1, 4),
+			Position = UDim2.fromOffset(-2, -2),
+			BackgroundColor3 = Library.Theme.Accent1,
+			BackgroundTransparency = 0.95,
+			BorderSizePixel = 0,
+			ZIndex = tabBtnOuter.ZIndex - 1,
+			Parent = tabBtnOuter,
+		})
+		tabGlow.Visible = false
+		Util.RegisterTheme(tabGlow, "BackgroundColor3", "AccentColor")
+
 		local tabGradLine = New("Frame", {
 			Size = UDim2.new(1, 0, 0, 2),
 			Position = UDim2.fromOffset(0, 0),
@@ -675,6 +707,19 @@ function Library:CreateWindow(cfg)
 			rightCol.Visible = false
 
 			local subBtnOuter, subBtnInner = Util.CreateHardBorder(self.SubTabBar, UDim2.fromOffset(75, 20), nil, Library.Theme.ControlTop, Library.Theme.ControlBottom)
+
+			local subGlow = New("Frame", {
+				Size = UDim2.new(1, 4, 1, 4),
+				Position = UDim2.fromOffset(-2, -2),
+				BackgroundColor3 = Library.Theme.Accent1,
+				BackgroundTransparency = 0.95,
+				BorderSizePixel = 0,
+				ZIndex = subBtnOuter.ZIndex - 1,
+				Parent = subBtnOuter,
+			})
+			subGlow.Visible = false
+			Util.RegisterTheme(subGlow, "BackgroundColor3", "AccentColor")
+
 			local subLabel = New("TextLabel", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
@@ -685,23 +730,37 @@ function Library:CreateWindow(cfg)
 				Parent = subBtnInner,
 			})
 
-			local SubTab = {
+				local SubTab = {
 				Btn = subBtnOuter,
 				Inner = subBtnInner,
 				Label = subLabel,
+				Glow = subGlow,
 				Left = subLeftCol,
 				Right = subRightCol,
 			}
+
+			subBtnInner.MouseEnter:Connect(function()
+				if not SubTab.Left.Visible then
+					Util.Tween(subGlow, 0.1, { BackgroundTransparency = 0.85 })
+				end
+			end)
+			subBtnInner.MouseLeave:Connect(function()
+				if not SubTab.Left.Visible then
+					Util.Tween(subGlow, 0.1, { BackgroundTransparency = 0.95 })
+				end
+			end)
 
 			local function selectSubTab()
 				for _, other in ipairs(self.SubTabs) do
 					other.Left.Visible = false
 					other.Right.Visible = false
+					other.Glow.Visible = false
 					Util.Tween(other.Label, 0.12, { TextColor3 = Library.Theme.TextDim })
 					Util.Tween(other.Inner, 0.12, { BackgroundColor3 = Library.Theme.ControlTop })
 				end
 				SubTab.Left.Visible = true
 				SubTab.Right.Visible = true
+				subGlow.Visible = true
 				Util.Tween(subLabel, 0.12, { TextColor3 = Library.Theme.Accent1 })
 				Util.Tween(subBtnInner, 0.12, { BackgroundColor3 = Library.Theme.GroupTop })
 			end
@@ -730,11 +789,13 @@ function Library:CreateWindow(cfg)
 			for _, other in ipairs(Window.Tabs) do
 				other.Page.Visible = false
 				other.GradLine.Visible = false
+				other.Glow.Visible = false
 				Util.Tween(other.Label, 0.15, { TextColor3 = Library.Theme.TextDim })
 				Util.Tween(other.Inner, 0.15, { BackgroundColor3 = Library.Theme.ControlTop })
 			end
 			tabPage.Visible = true
 			tabGradLine.Visible = true
+			tabGlow.Visible = true
 			Util.Tween(tabLabel, 0.15, { TextColor3 = Library.Theme.Text })
 			Util.Tween(tabBtnInner, 0.15, { BackgroundColor3 = Library.Theme.GroupTop })
 		end
@@ -747,7 +808,19 @@ function Library:CreateWindow(cfg)
 		Tab.Inner = tabBtnInner
 		Tab.Label = tabLabel
 		Tab.GradLine = tabGradLine
+		Tab.Glow = tabGlow
 		table.insert(Window.Tabs, Tab)
+
+		tabBtnInner.MouseEnter:Connect(function()
+			if not tabPage.Visible then
+				Util.Tween(tabGlow, 0.1, { BackgroundTransparency = 0.85 })
+			end
+		end)
+		tabBtnInner.MouseLeave:Connect(function()
+			if not tabPage.Visible then
+				Util.Tween(tabGlow, 0.1, { BackgroundTransparency = 0.95 })
+			end
+		end)
 
 		if #Window.Tabs == 1 then selectTab() end
 
@@ -760,15 +833,15 @@ function Library:CreateWindow(cfg)
 			gbOuter.AutomaticSize = Enum.AutomaticSize.Y
 
 			local titleHold = New("Frame", {
-				Size = UDim2.fromOffset(0, 16),
+				Size = UDim2.fromOffset(0, 18),
 				AutomaticSize = Enum.AutomaticSize.X,
-				Position = UDim2.fromOffset(10, -8),
-				BackgroundColor3 = Library.Theme.MainTop,
+				Position = UDim2.fromOffset(10, -6),
+				BackgroundColor3 = Library.Theme.GroupTop,
 				BorderSizePixel = 0,
 				ZIndex = 5,
 				Parent = gbOuter,
 			})
-			Util.RegisterTheme(titleHold, "BackgroundColor3", "BackgroundColor")
+			Util.RegisterTheme(titleHold, "BackgroundColor3", "MainColor")
 
 			New("UIPadding", {
 				PaddingLeft = UDim.new(0, 6),
@@ -1222,6 +1295,9 @@ function Library:CreateWindow(cfg)
 
 				local boxOuter, boxInner = Util.CreateHardBorder(row, UDim2.fromOffset(13, 13), UDim2.fromOffset(0, 2), Library.Theme.ControlTop, Library.Theme.ControlBottom)
 				
+				local glow = Util.AddGlowEffect(boxOuter, 0.8)
+				glow.Visible = state
+				
 				local fill = New("Frame", {
 					Size = UDim2.fromScale(1, 1),
 					BackgroundColor3 = Library.Theme.Accent1,
@@ -1267,6 +1343,7 @@ function Library:CreateWindow(cfg)
 					Library.Flags[flag] = val
 					Util.Tween(fill, 0.14, { BackgroundTransparency = val and 0 or 1 })
 					Util.Tween(label, 0.14, { TextColor3 = val and Library.Theme.Text or Library.Theme.TextDim })
+					glow.Visible = val
 					callback(val)
 				end
 
@@ -1415,6 +1492,17 @@ function Library:CreateWindow(cfg)
 					Parent = trackInner,
 				})
 				Util.RegisterTheme(fill, "BackgroundColor3", "AccentColor")
+				
+				local sliderGlow = New("Frame", {
+					Size = UDim2.new(pct, 4, 1, 4),
+					Position = UDim2.fromOffset(-2, -2),
+					BackgroundColor3 = Library.Theme.Accent1,
+					BackgroundTransparency = 0.7,
+					BorderSizePixel = 0,
+					ZIndex = trackInner.ZIndex - 1,
+					Parent = trackInner,
+				})
+				Util.RegisterTheme(sliderGlow, "BackgroundColor3", "AccentColor")
 
 				local dragging = false
 				local function updateSlider(xPos)
@@ -1424,6 +1512,7 @@ function Library:CreateWindow(cfg)
 					Library.Flags[flag] = val
 					valLabel.Text = tostring(val) .. suffix
 					Util.Tween(fill, 0.05, { Size = UDim2.new(x, 0, 1, 0) })
+					Util.Tween(sliderGlow, 0.05, { Size = UDim2.new(x, 4, 1, 4) })
 					cb(val)
 				end
 
@@ -1456,6 +1545,7 @@ function Library:CreateWindow(cfg)
 					curVal = v
 					valLabel.Text = tostring(v) .. suffix
 					Util.Tween(fill, 0.1, { Size = UDim2.new((v - min) / (max - min), 0, 1, 0) })
+					Util.Tween(sliderGlow, 0.1, { Size = UDim2.new((v - min) / (max - min), 4, 1, 4) })
 					cb(v)
 				end
 				function Slider:Get() return curVal end
@@ -1495,6 +1585,18 @@ function Library:CreateWindow(cfg)
 				})
 
 				local ddOuter, ddInner = Util.CreateHardBorder(row, UDim2.new(1, 0, 0, 20), UDim2.fromOffset(0, 16), Library.Theme.ControlTop, Library.Theme.ControlBottom)
+
+				local ddGlow = New("Frame", {
+					Size = UDim2.new(1, 4, 1, 4),
+					Position = UDim2.fromOffset(-2, -2),
+					BackgroundColor3 = Library.Theme.Accent1,
+					BackgroundTransparency = 0.9,
+					BorderSizePixel = 0,
+					ZIndex = ddOuter.ZIndex - 1,
+					Parent = ddOuter,
+				})
+				ddGlow.Visible = false
+				Util.RegisterTheme(ddGlow, "BackgroundColor3", "AccentColor")
 
 				local function getDisplayString()
 					if isMulti then
@@ -1536,6 +1638,7 @@ function Library:CreateWindow(cfg)
 				local function closeDropdown()
 					if not isOpen then return end
 					isOpen = false
+					ddGlow.Visible = false
 					Util.Tween(arrow, 0.14, { Rotation = 0, ImageColor3 = Library.Theme.TextDim })
 					if blocker then blocker:Destroy() blocker = nil end
 					if popOuter then
@@ -1549,6 +1652,7 @@ function Library:CreateWindow(cfg)
 				local function openDropdown()
 					if isOpen then closeDropdown() return end
 					isOpen = true
+					ddGlow.Visible = true
 					Util.Tween(arrow, 0.14, { Rotation = 180, ImageColor3 = Library.Theme.Accent1 })
 
 					blocker = New("TextButton", {
@@ -1675,6 +1779,20 @@ function Library:CreateWindow(cfg)
 				local botCol = isRisky and Library.Theme.RiskyDark or Library.Theme.ControlBottom
 
 				local btnOuter, btnInner = Util.CreateHardBorder(elemList, UDim2.new(1, 0, 0, 22), nil, topCol, botCol)
+				
+				local btnGlow = New("Frame", {
+					Size = UDim2.new(1, 4, 1, 4),
+					Position = UDim2.fromOffset(-2, -2),
+					BackgroundColor3 = isRisky and Library.Theme.Risky or Library.Theme.Accent1,
+					BackgroundTransparency = 0.9,
+					BorderSizePixel = 0,
+					ZIndex = btnOuter.ZIndex - 1,
+					Parent = btnOuter,
+				})
+				New("UICorner", {
+					CornerRadius = UDim.new(0, 4),
+					Parent = btnGlow,
+				})
 				
 				New("TextLabel", {
 					Size = UDim2.fromScale(1, 1),
